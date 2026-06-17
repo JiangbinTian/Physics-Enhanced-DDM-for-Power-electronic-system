@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Teacher-Student Distillation Demo</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Interactive demo</p>
+        <h1>Physics-guided teacher-student distillation demo</h1>
+      </div>
+      <nav aria-label="Page sections">
+        <a href="#sandbox">Sandbox</a>
+        <a href="#figures">Figures</a>
+        <a href="#workflow">Workflow</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="overview" aria-label="Demo overview">
+        <div class="overview-copy">
+          <h2>Compact LSTM-4 student vs. M3 teacher</h2>
+          <p>
+            This page loads precomputed model cases from the demo results and
+            compares student-model outputs with teacher-model outputs and the
+            measured active power trajectory.
+          </p>
+        </div>
+        <div class="summary-grid" id="summaryMetrics" aria-live="polite"></div>
+      </section>
+
+      <section id="sandbox" class="workspace" aria-label="Interactive model sandbox">
+        <aside class="controls">
+          <div class="panel-head">
+            <p class="eyebrow">Precomputed cases</p>
+            <h2>Model case selector</h2>
+          </div>
+
+          <label class="control">
+            <span>Configuration</span>
+            <select id="variantSelect"></select>
+          </label>
+
+          <dl class="case-details" id="caseDetails"></dl>
+
+          <div class="toggle-row">
+            <label><input data-curve="measured_p" type="checkbox" checked> Measured P</label>
+            <label><input data-curve="selected_student" type="checkbox" checked> Selected student</label>
+            <label><input data-curve="all_students" type="checkbox"> All students</label>
+            <label><input data-curve="m3_teacher" type="checkbox" checked> M3 teacher model</label>
+            <label><input data-curve="m1_model" type="checkbox" checked> M1 model</label>
+            <label><input data-curve="m2_model" type="checkbox" checked> M2 model</label>
+          </div>
+
+          <div class="note" id="sourceNote"></div>
+        </aside>
+
+        <section class="visual-area">
+          <div class="chart-toolbar">
+            <div>
+              <p class="eyebrow">Zoomable response</p>
+              <h2>Active power tracking</h2>
+            </div>
+            <div class="button-row">
+              <button id="zoomOutButton" type="button" title="Zoom out">Zoom out</button>
+              <button id="resetViewButton" type="button" title="Reset chart view">Reset view</button>
+            </div>
+          </div>
+          <canvas id="predictionChart" width="1280" height="560" aria-label="Active power line chart"></canvas>
+          <div class="metric-row" id="liveMetrics" aria-live="polite"></div>
+        </section>
+      </section>
+
+      <section class="analysis-grid" aria-label="Training and residual analysis">
+        <div class="analysis-panel">
+          <div class="panel-head">
+            <p class="eyebrow">Training trace</p>
+            <h2>Selected case loss history</h2>
+          </div>
+          <canvas id="historyChart" width="720" height="360" aria-label="Training history chart"></canvas>
+        </div>
+        <div class="analysis-panel">
+          <div class="panel-head">
+            <p class="eyebrow">Error structure</p>
+            <h2>Selected student-teacher residual</h2>
+          </div>
+          <canvas id="residualChart" width="720" height="360" aria-label="Residual chart"></canvas>
+        </div>
+      </section>
+
+      <section id="figures" class="figures" aria-label="Exported demo figures">
+        <div class="section-head">
+          <p class="eyebrow">Original artifacts</p>
+          <h2>Figures exported from the notebooks</h2>
+        </div>
+        <div class="figure-grid">
+          <figure>
+            <img src="figures/teacher_student_comparison.png" alt="Teacher and student comparison plot">
+            <figcaption>Teacher-student comparison</figcaption>
+          </figure>
+          <figure>
+            <img src="figures/m3_teacher_prediction.png" alt="M3 teacher prediction plot">
+            <figcaption>M3 teacher prediction</figcaption>
+          </figure>
+          <figure>
+            <img src="figures/physics_prior.png" alt="Physics prior plot">
+            <figcaption>Physics prior</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="workflow" class="workflow" aria-label="Demo workflow">
+        <div class="section-head">
+          <p class="eyebrow">Reproducibility</p>
+          <h2>Notebook pipeline</h2>
+        </div>
+        <ol class="steps">
+          <li><span>01</span>Prepare test1 data and define M1, M2, and M3 synthesis.</li>
+          <li><span>02</span>Train M1 and M2, then generate M3 teacher predictions.</li>
+          <li><span>03</span>Train the compact distilled LSTM-4 student.</li>
+          <li><span>04</span>Predict with the student and compare it with the M3 teacher.</li>
+        </ol>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
