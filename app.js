@@ -416,6 +416,7 @@ function populateConditions() {
     `<option value="${condition}">${condition.replace("_", " ")}</option>`
   )).join("");
   controls.conditionSelect.value = conditions[0];
+  controls.conditionSelect.closest(".control").hidden = conditions.length <= 1;
 }
 
 async function loadDemo() {
