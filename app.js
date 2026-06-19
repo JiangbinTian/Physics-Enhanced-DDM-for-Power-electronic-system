@@ -5,7 +5,6 @@ const paths = {
 
 const controls = {
   variantSelect: document.querySelector("#variantSelect"),
-  conditionSelect: document.querySelector("#conditionSelect"),
   curveToggles: [...document.querySelectorAll("[data-curve]")],
   resetViewButton: document.querySelector("#resetViewButton"),
   zoomOutButton: document.querySelector("#zoomOutButton")
@@ -52,15 +51,8 @@ function selectedVariant() {
   return state.caseData.variants.find((variant) => variant.id === controls.variantSelect.value) || state.caseData.variants[0];
 }
 
-function selectedCondition() {
-  return controls.conditionSelect.value;
-}
-
 function selectedConditionIndices() {
-  const condition = selectedCondition();
-  return state.caseData.curves
-    .map((row, index) => row.condition === condition ? index : -1)
-    .filter((index) => index >= 0);
+  return state.caseData.curves.map((_, index) => index);
 }
 
 function valuesAtIndices(values, indices) {
@@ -410,15 +402,6 @@ function populateVariants() {
   if (baseline) controls.variantSelect.value = baseline.id;
 }
 
-function populateConditions() {
-  const conditions = [...new Set(state.caseData.curves.map((row) => row.condition))];
-  controls.conditionSelect.innerHTML = conditions.map((condition) => (
-    `<option value="${condition}">${condition.replace("_", " ")}</option>`
-  )).join("");
-  controls.conditionSelect.value = conditions[0];
-  controls.conditionSelect.closest(".control").hidden = conditions.length <= 1;
-}
-
 async function loadDemo() {
   try {
     const [caseData, metrics] = await Promise.all([
@@ -429,7 +412,6 @@ async function loadDemo() {
     state.metrics = metrics;
     document.querySelector("#sourceNote").textContent = caseData.source_note;
     populateVariants();
-    populateConditions();
     updateSummaryMetrics();
     state.charts.prediction = new ZoomableLineChart(document.querySelector("#predictionChart"), { yLabel: "Active power P" });
     state.charts.history = new ZoomableLineChart(document.querySelector("#historyChart"), { yLabel: "Loss" });
@@ -441,7 +423,6 @@ async function loadDemo() {
 }
 
 controls.variantSelect.addEventListener("change", () => render(false));
-controls.conditionSelect.addEventListener("change", () => render(false));
 controls.curveToggles.forEach((control) => control.addEventListener("change", () => render(true)));
 controls.resetViewButton.addEventListener("click", () => {
   Object.values(state.charts).forEach((chart) => chart.resetView());
