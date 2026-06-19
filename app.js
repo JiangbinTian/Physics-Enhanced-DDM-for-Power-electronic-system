@@ -5,6 +5,7 @@ const paths = {
 
 const controls = {
   variantSelect: document.querySelector("#variantSelect"),
+  conditionSelect: document.querySelector("#conditionSelect"),
   curveToggles: [...document.querySelectorAll("[data-curve]")],
   resetViewButton: document.querySelector("#resetViewButton"),
   zoomOutButton: document.querySelector("#zoomOutButton")
@@ -51,12 +52,29 @@ function selectedVariant() {
   return state.caseData.variants.find((variant) => variant.id === controls.variantSelect.value) || state.caseData.variants[0];
 }
 
+function selectedCondition() {
+  return controls.conditionSelect.value;
+}
+
+function selectedConditionIndices() {
+  const condition = selectedCondition();
+  return state.caseData.curves
+    .map((row, index) => row.condition === condition ? index : -1)
+    .filter((index) => index >= 0);
+}
+
+function valuesAtIndices(values, indices) {
+  return indices.map((index) => values[index]);
+}
+
 function curveValues(key) {
-  return state.caseData.curves.map((row) => row[key]);
+  const indices = selectedConditionIndices();
+  return indices.map((index) => state.caseData.curves[index][key]);
 }
 
 function timeValues() {
-  return state.caseData.curves.map((row) => row.time);
+  const indices = selectedConditionIndices();
+  return indices.map((index) => state.caseData.curves[index].time);
 }
 
 function updateSummaryMetrics() {
@@ -278,12 +296,22 @@ class ZoomableLineChart {
       ctx.strokeStyle = item.color;
       ctx.lineWidth = item.width || 2;
       ctx.globalAlpha = item.alpha || 1;
+      let started = false;
       item.values.forEach((value, index) => {
         const xValue = item.x[index];
-        if (xValue < this.view.xMin || xValue > this.view.xMax) return;
+        const previousXValue = item.x[index - 1];
+        const startsNewCondition = index > 0 && xValue < previousXValue;
+        if (!Number.isFinite(xValue) || !Number.isFinite(value)) {
+          started = false;
+          return;
+        }
+        if (startsNewCondition) started = false;
         const x = this.xToPixel(xValue, plot);
         const y = this.yToPixel(value, plot);
-        if (index === 0) ctx.moveTo(x, y);
+        if (!started) {
+          ctx.moveTo(x, y);
+          started = true;
+        }
         else ctx.lineTo(x, y);
       });
       ctx.stroke();
@@ -320,16 +348,17 @@ class ZoomableLineChart {
 function predictionSeries(variant) {
   const toggles = activeToggles();
   const x = timeValues();
+  const indices = selectedConditionIndices();
   const series = [];
   if (toggles.measured_p) series.push({ name: "Measured P", x, values: curveValues("measured_p"), color: palette.measured_p, width: 2.5 });
-  if (toggles.selected_student) series.push({ name: variant.label, x, values: variant.prediction, color: palette.selected_student, width: 2.3 });
+  if (toggles.selected_student) series.push({ name: variant.label, x, values: valuesAtIndices(variant.prediction, indices), color: palette.selected_student, width: 2.3 });
   if (toggles.all_students) {
     state.caseData.variants.forEach((item, index) => {
       if (item.id === variant.id && toggles.selected_student) return;
       series.push({
         name: item.label,
         x,
-        values: item.prediction,
+        values: valuesAtIndices(item.prediction, indices),
         color: palette.studentCases[index % palette.studentCases.length],
         width: 1.45,
         alpha: 0.55
@@ -352,11 +381,12 @@ function historySeries(variant) {
 function residualSeries(variant) {
   const x = timeValues();
   const teacher = curveValues("m3_teacher");
+  const prediction = valuesAtIndices(variant.prediction, selectedConditionIndices());
   return [
     {
       name: "Selected student - M3",
       x,
-      values: variant.prediction.map((value, index) => value - teacher[index]),
+      values: prediction.map((value, index) => value - teacher[index]),
       color: palette.residual,
       width: 2.2
     }
@@ -380,6 +410,14 @@ function populateVariants() {
   if (baseline) controls.variantSelect.value = baseline.id;
 }
 
+function populateConditions() {
+  const conditions = [...new Set(state.caseData.curves.map((row) => row.condition))];
+  controls.conditionSelect.innerHTML = conditions.map((condition) => (
+    `<option value="${condition}">${condition.replace("_", " ")}</option>`
+  )).join("");
+  controls.conditionSelect.value = conditions[0];
+}
+
 async function loadDemo() {
   try {
     const [caseData, metrics] = await Promise.all([
@@ -390,6 +428,7 @@ async function loadDemo() {
     state.metrics = metrics;
     document.querySelector("#sourceNote").textContent = caseData.source_note;
     populateVariants();
+    populateConditions();
     updateSummaryMetrics();
     state.charts.prediction = new ZoomableLineChart(document.querySelector("#predictionChart"), { yLabel: "Active power P" });
     state.charts.history = new ZoomableLineChart(document.querySelector("#historyChart"), { yLabel: "Loss" });
@@ -401,6 +440,7 @@ async function loadDemo() {
 }
 
 controls.variantSelect.addEventListener("change", () => render(false));
+controls.conditionSelect.addEventListener("change", () => render(false));
 controls.curveToggles.forEach((control) => control.addEventListener("change", () => render(true)));
 controls.resetViewButton.addEventListener("click", () => {
   Object.values(state.charts).forEach((chart) => chart.resetView());
