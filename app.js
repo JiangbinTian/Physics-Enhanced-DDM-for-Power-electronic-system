@@ -1,6 +1,6 @@
 const paths = {
   caseData: "data/precomputed_variants.json",
-  metrics: "results/teacher_student_metrics.json"
+  metrics: "data/teacher_student_metrics.json"
 };
 
 const controls = {
@@ -21,8 +21,7 @@ const palette = {
   measured_p: "#16211f",
   selected_student: "#c66a24",
   m3_teacher: "#2f6fb3",
-  m1_model: "#2f7d69",
-  m2_model: "#6c5aa8",
+  physics_prior: "#6c5aa8",
   residual: "#b54747",
   grid: "#e3e7e1",
   muted: "#6f7976",
@@ -63,8 +62,9 @@ function timeValues() {
 function updateSummaryMetrics() {
   document.querySelector("#summaryMetrics").innerHTML = [
     metricCard("Teacher RMSE", formatNumber(state.metrics.teacher_vs_true.RMSE), "M3 vs. measured P"),
-    metricCard("Baseline RMSE", formatNumber(state.metrics.student_vs_true.RMSE), "Exported LSTM-4"),
-    metricCard("Distillation RMSE", formatNumber(state.metrics.student_vs_teacher.RMSE), "Baseline vs. M3")
+    metricCard("LSTM-4 RMSE", formatNumber(state.metrics.student_vs_true.RMSE), "Direct-output student"),
+    metricCard("Distillation RMSE", formatNumber(state.metrics.student_vs_teacher.RMSE), "LSTM-4 vs. M3"),
+    metricCard("Physics-prior RMSE", formatNumber(state.metrics.physics_prior_reference.RMSE), "Reference only")
   ].join("");
 }
 
@@ -74,15 +74,15 @@ function updateCaseDetails(variant) {
     ["Hidden", h.hidden_units],
     ["Dense", h.dense_units],
     ["Epochs", h.epochs],
-    ["Physics", `${Math.round(h.physics_blend * 100)}%`],
+    ["Window", h.window],
     ["Params", variant.parameters]
   ].map(([label, value]) => `<dt>${label}</dt><dd>${value}</dd>`).join("");
 
   document.querySelector("#liveMetrics").innerHTML = [
     metricCard("RMSE", formatNumber(variant.metrics.RMSE), "Selected vs. measured P"),
-    metricCard("MAE", formatNumber(variant.metrics.MAE), "Average absolute error"),
-    metricCard("R2", formatNumber(variant.metrics.R2, 4), "Explained variance"),
-    metricCard("Teacher RMSE", formatNumber(variant.metrics.teacher_RMSE), "Selected vs. M3")
+    metricCard("Teacher RMSE", formatNumber(variant.metrics.teacher_RMSE), "Selected vs. M3"),
+    metricCard("Params", variant.parameters, "Trainable weights"),
+    metricCard("Load ratio", `${formatNumber(variant.rho_percent, 1)}%`, "Inference budget proxy")
   ].join("");
 }
 
@@ -337,15 +337,14 @@ function predictionSeries(variant) {
     });
   }
   if (toggles.m3_teacher) series.push({ name: "M3 teacher model", x, values: curveValues("m3_teacher"), color: palette.m3_teacher, width: 2.1, alpha: 0.9 });
-  if (toggles.m1_model) series.push({ name: "M1 model", x, values: curveValues("m1_model"), color: palette.m1_model, width: 1.8, alpha: 0.85 });
-  if (toggles.m2_model) series.push({ name: "M2 model", x, values: curveValues("m2_model"), color: palette.m2_model, width: 1.8, alpha: 0.85 });
+  if (toggles.physics_prior) series.push({ name: "Physics-prior reference", x, values: curveValues("physics_prior"), color: palette.physics_prior, width: 1.8, alpha: 0.8 });
   return series;
 }
 
 function historySeries(variant) {
   const x = variant.history.map((row) => row.epoch);
   return [
-    { name: "loss", x, values: variant.history.map((row) => row.loss), color: palette.m1_model, width: 2.2 },
+    { name: "loss", x, values: variant.history.map((row) => row.loss), color: palette.physics_prior, width: 2.2 },
     { name: "val_loss", x, values: variant.history.map((row) => row.val_loss), color: palette.m3_teacher, width: 2.2 }
   ];
 }
@@ -377,7 +376,7 @@ function populateVariants() {
   controls.variantSelect.innerHTML = state.caseData.variants.map((variant) => (
     `<option value="${variant.id}">${variant.label}</option>`
   )).join("");
-  const baseline = state.caseData.variants.find((variant) => variant.id === "lstm4_dense4_epoch50");
+  const baseline = state.caseData.variants.find((variant) => variant.id === "lstm4_dense4");
   if (baseline) controls.variantSelect.value = baseline.id;
 }
 
@@ -397,7 +396,7 @@ async function loadDemo() {
     state.charts.residual = new ZoomableLineChart(document.querySelector("#residualChart"), { yLabel: "Residual" });
     render(false);
   } catch (error) {
-    document.body.innerHTML = `<main class="load-error"><h1>Could not load demo data</h1><p>${error.message}</p><p>Run a local static server from the demo folder, then open <code>/web/index.html</code>.</p></main>`;
+    document.body.innerHTML = `<main class="load-error"><h1>Could not load demo data</h1><p>${error.message}</p><p>Run a local static server from the demo folder, then open <code>index.html</code>.</p></main>`;
   }
 }
 

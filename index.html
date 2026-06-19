@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Teacher-Student Distillation Demo</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:,">
   </head>
   <body>
     <header class="topbar">
@@ -22,11 +23,11 @@
     <main>
       <section class="overview" aria-label="Demo overview">
         <div class="overview-copy">
-          <h2>Compact LSTM-4 student vs. M3 teacher</h2>
+          <h2>L=40 direct-output student audit</h2>
           <p>
-            This page loads precomputed model cases from the demo results and
-            compares student-model outputs with teacher-model outputs and the
-            measured active power trajectory.
+            This page loads the recalculated distillation audit results and
+            compares retained-LSTM student outputs with the M3 teacher, the
+            measured active power trajectory, and the physics-prior reference.
           </p>
         </div>
         <div class="summary-grid" id="summaryMetrics" aria-live="polite"></div>
@@ -51,8 +52,7 @@
             <label><input data-curve="selected_student" type="checkbox" checked> Selected student</label>
             <label><input data-curve="all_students" type="checkbox"> All students</label>
             <label><input data-curve="m3_teacher" type="checkbox" checked> M3 teacher model</label>
-            <label><input data-curve="m1_model" type="checkbox" checked> M1 model</label>
-            <label><input data-curve="m2_model" type="checkbox" checked> M2 model</label>
+            <label><input data-curve="physics_prior" type="checkbox" checked> Physics-prior reference</label>
           </div>
 
           <div class="note" id="sourceNote"></div>
@@ -98,6 +98,10 @@
         </div>
         <div class="figure-grid">
           <figure>
+            <img src="figures/no_prior_rmse_rho_teacher.png" alt="No-prior L40 distillation RMSE and inference load comparison">
+            <figcaption>L=40 no-prior distillation audit</figcaption>
+          </figure>
+          <figure>
             <img src="figures/teacher_student_comparison.png" alt="Teacher and student comparison plot">
             <figcaption>Teacher-student comparison</figcaption>
           </figure>
@@ -118,10 +122,10 @@
           <h2>Notebook pipeline</h2>
         </div>
         <ol class="steps">
-          <li><span>01</span>Prepare test1 data and define M1, M2, and M3 synthesis.</li>
-          <li><span>02</span>Train M1 and M2, then generate M3 teacher predictions.</li>
-          <li><span>03</span>Train the compact distilled LSTM-4 student.</li>
-          <li><span>04</span>Predict with the student and compare it with the M3 teacher.</li>
+          <li><span>01</span>Prepare the measured active-power trajectories for evaluation.</li>
+          <li><span>02</span>Generate the M3 teacher-model prediction on the retained test cases.</li>
+          <li><span>03</span>Evaluate the L=40 retained-LSTM student configurations.</li>
+          <li><span>04</span>Compare each student with measured P, the M3 teacher, and the reference prior.</li>
         </ol>
       </section>
     </main>
